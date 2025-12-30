@@ -7,15 +7,15 @@ const { children, handleDeleteTodo, index, handleEditTodo } = props
     <li className='todoItem'>
         {children}
         <div className="actionsContainer">
-            <button onClick={(() => {
+            <button onClick={() => {
                 handleEditTodo(index)
-            })}>
+            }}>
                 <i className="fa-regular fa-pen-to-square"></i>
             </button>
             
-            <button onClick={(() => {
+            <button onClick={() => {
                 handleDeleteTodo(index)
-            })}>
+            }}>
                 <i className="fa-solid fa-xmark"></i>
             </button>
         </div>            
