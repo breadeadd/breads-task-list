@@ -6,7 +6,7 @@ import CompletedList from "./components/CompletedList"
 
 function App() {
 
-  //stateful variable
+  //stateful variable [currentVal, updateFunction] = stateCreated
   const [todos, setTodos] = useState([])
   const [todoValue, setTodoValue] = useState('')
   const [completed, setCompleted] = useState([]);
@@ -55,6 +55,23 @@ function App() {
     persistCompleted([])
   }
 
+  function handleUndoCompleted(index) {
+    //get todo object
+    const todoToRestore = completed[index]
+    //add back to the todo list
+    const newTodoList = [...todos, todoToRestore]
+    persistTodos(newTodoList)
+    setTodos(newTodoList)
+    
+    //remove from completed list
+    const newCompletedList = completed.filter((_, completedIndex) => {
+      return completedIndex !== index
+    })
+    persistCompleted(newCompletedList)
+    setCompleted(newCompletedList)
+  }
+
+  // Runs when app starts
   useEffect(() => {
     if (!localStorage) {
       return
@@ -79,7 +96,7 @@ function App() {
       <TodoInput todoValue={todoValue} setTodoValue={setTodoValue} handleAddTodos={handleAddTodos} />
       <TodoList handleCompleteTodo={handleCompleteTodo} handleEditTodo={handleEditTodo} handleDeleteTodo={handleDeleteTodo} todos={todos} />
       <SessionHeader count={sessionCount} handleResetSession={handleResetSession}/>
-      <CompletedList todos={completed} />
+      <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted}/>
     </>
   )
 }

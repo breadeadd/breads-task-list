@@ -1,18 +1,17 @@
 import React, { memo } from 'react'
 import CompletedCard from './CompletedCard'
 
-const CompletedList = memo(({ todos = [] }) => {
+export default function CompletedList(props) {
+    const { todos, handleUndoCompleted } = props
     return (
         <ul className="main">
-            {(
-                todos.map((item, idx) => (
-                    <CompletedCard key={idx}>
-                        <p>{item}</p>
+            {todos.map((completed, index) => {
+                    return(
+                    <CompletedCard key={index} index={index} handleUndoCompleted={handleUndoCompleted}>
+                        <p>{completed}</p>
                     </CompletedCard>
-                ))
-            )}
+                )
+            })}
         </ul>
     )
-})
-
-export default CompletedList
+}

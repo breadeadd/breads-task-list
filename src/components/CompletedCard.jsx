@@ -1,12 +1,16 @@
 import React, { memo } from 'react'
 
-const CompletedCard = memo(({ children }) => {
+export default function CompletedCard(props) {
+const { children, index, handleUndoCompleted } = props
   return (
     <li className="completedItem">
       {children}
-      <i className="fa-regular fa-star"></i>
+      <button onClick={() =>{
+        handleUndoCompleted(index)
+      }}>
+        <i class="fa-solid fa-reply"></i>
+      </button>
     </li>
   )
-})
+}
 
-export default CompletedCard
