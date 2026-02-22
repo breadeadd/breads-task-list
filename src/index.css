@@ -4,12 +4,32 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  color: #202124;
+  color: var(--text-colour);
+}
+
+:root {
+  --background-colour: #f5f4f3;
+  --item-colour: white;
+  --done-colour: rgb(228, 227, 227);
+  --session-header-button: rgb(219, 219, 219);
+  --text-colour: #202124;
+  --toggle-background: rgb(219, 219, 219);
+  --select-background: rgb(255,239, 97);
+}
+
+[data-theme="dark"] {
+  --background-colour: #222231;
+  --item-colour: #303042; 
+  --done-colour: #2A2A39;
+  --session-header-button: #2A2A39;
+  --text-colour: #DDE3F5;
+  --toggle-background: #303042;
+  --select-background: #22AFCB;
 }
 
 ::selection {
-  background: rgb(255, 239, 97);
-  color: black;
+  background: var(--select-background);
+  color: var(--text-colour);
 }
 
 h1,
@@ -26,8 +46,31 @@ button {
   display: flex;
   flex-direction: column;
   padding: 14px;
-  background: #f5f4f3;
+  background: var(--background-colour);
   gap: 14px;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#root,
+header,
+.todo-header,
+.todoItem,
+.sessionHeader,
+.completedItem,
+button,
+input {
+  transition: background-color 250ms ease-in-out,
+              color 250ms ease-in-out,
+              border-color 250ms ease-in-out,
+              transform 250ms ease-in-out;
 }
 
 header {
@@ -66,7 +109,7 @@ header input {
   padding: 14px 18px;
   border: none;
   outline: none;
-  background: white;
+  background: var(--item-colour);
 }
 
 p {
@@ -85,7 +128,7 @@ p {
   gap: 14px;
   padding: 14px;
   border-radius: 14px;
-  background: white;
+  background: var(--item-colour);
 }
 
 .todoItem p {
@@ -125,7 +168,7 @@ p {
   border: none;
   outline: none;
   border-radius: 14px;
-  background: rgb(219, 219, 219);
+  background: var(--session-header-button);
   transition-duration: 200ms;
   cursor: pointer;
 }
@@ -142,7 +185,7 @@ p {
   gap: 14px;
   padding: 14px;
   border-radius: 14px;
-  background: rgb(228, 227, 227);
+  background: var(--done-colour);
 }
 
 .completedItem button {

@@ -3,6 +3,7 @@ import TodoInput from "./components/TodoInput"
 import TodoList from "./components/TodoList"
 import SessionHeader from "./components/SessionHeader" 
 import CompletedList from "./components/CompletedList"
+import ThemeToggle from "./components/ThemeToggle"
 
 function App() {
 
@@ -11,6 +12,24 @@ function App() {
   const [todoValue, setTodoValue] = useState('')
   const [completed, setCompleted] = useState([]);
   const sessionCount= completed.length;
+
+  //theme save
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('theme') || 'dark'
+    } catch {
+      return 'dark'
+    }
+  })
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme)
+      localStorage.setItem('theme', theme)
+    } catch (e) {
+      // ignore
+    }
+  }, [theme])
 
   function persistTodos(newList) {
     localStorage.setItem('todos', JSON.stringify({ todos: newList }))
@@ -92,12 +111,13 @@ function App() {
   }, [])
 
   return (
-    <>
+    <div className="App" data-theme={theme}>
+      <ThemeToggle theme={theme} setTheme={setTheme} />
       <TodoInput todoValue={todoValue} setTodoValue={setTodoValue} handleAddTodos={handleAddTodos} />
       <TodoList handleCompleteTodo={handleCompleteTodo} handleEditTodo={handleEditTodo} handleDeleteTodo={handleDeleteTodo} todos={todos} />
       <SessionHeader count={sessionCount} handleResetSession={handleResetSession}/>
       <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted}/>
-    </>
+    </div>
   )
 }
 
