@@ -1,8 +1,6 @@
 import { useState } from "react"
 
-export default function TodoInput(props) {
-    const { handleAddTodos, todoValue, setTodoValue } = props
-
+const TodoInput = ({ handleAddTodos, todoValue, setTodoValue }) => {
     const submit = () => {
         if (!todoValue.trim()) return;
         handleAddTodos(todoValue);
@@ -24,3 +22,5 @@ export default function TodoInput(props) {
         </header>
     )
 }
+
+export default TodoInput

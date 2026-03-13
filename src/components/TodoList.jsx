@@ -1,7 +1,7 @@
 import React from 'react'
 import TodoCard from './TodoCard'
 
-export default function TodoList(props) {
+const TodoList = (props) => {
     const { todos } = props
 
   return (
@@ -16,3 +16,5 @@ export default function TodoList(props) {
     </ul>
   )
 }
+
+export default TodoList

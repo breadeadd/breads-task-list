@@ -1,8 +1,7 @@
-import React, { memo } from 'react'
+import React from 'react'
 import CompletedCard from './CompletedCard'
 
-export default function CompletedList(props) {
-    const { todos, handleUndoCompleted } = props
+const CompletedList = ({ todos, handleUndoCompleted }) => {
     return (
         <ul className="main">
             {todos.map((completed, index) => {
@@ -15,3 +14,5 @@ export default function CompletedList(props) {
         </ul>
     )
 }
+
+export default CompletedList

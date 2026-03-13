@@ -1,7 +1,6 @@
-import React, { memo } from 'react'
+import React from 'react'
 
-export default function CompletedCard(props) {
-const { children, index, handleUndoCompleted } = props
+const CompletedCard = ({ children, index, handleUndoCompleted }) => {
   return (
     <li className="completedItem">
       {children}
@@ -13,4 +12,6 @@ const { children, index, handleUndoCompleted } = props
     </li>
   )
 }
+
+export default CompletedCard
 

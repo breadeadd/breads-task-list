@@ -4,8 +4,10 @@ import TodoList from "./components/TodoList"
 import SessionHeader from "./components/SessionHeader" 
 import CompletedList from "./components/CompletedList"
 import ThemeToggle from "./components/ThemeToggle"
+import ListHeader from "./components/ListHeader"
+import ListsContainer from "./components/ListsContainer"
 
-function App() {
+const App = () => {
 
   //stateful variable [currentVal, updateFunction] = stateCreated
   const [todos, setTodos] = useState([])
@@ -115,6 +117,8 @@ function App() {
       <ThemeToggle theme={theme} setTheme={setTheme} />
       <TodoInput todoValue={todoValue} setTodoValue={setTodoValue} handleAddTodos={handleAddTodos} />
       <TodoList handleCompleteTodo={handleCompleteTodo} handleEditTodo={handleEditTodo} handleDeleteTodo={handleDeleteTodo} todos={todos} />
+      <ListsContainer />
+      <ListHeader />
       <SessionHeader count={sessionCount} handleResetSession={handleResetSession}/>
       <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted}/>
     </div>

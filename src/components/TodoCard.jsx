@@ -1,9 +1,6 @@
 import React from 'react'
 
-export default function TodoCard(props) {
-const { children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo } = props
-
-
+const TodoCard = ({ children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo }) => {
   return (
     <li className='todoItem'>
         {children}
@@ -32,3 +29,5 @@ const { children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo } 
     </li>
   )
 }
+
+export default TodoCard

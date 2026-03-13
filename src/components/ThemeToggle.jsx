@@ -1,9 +1,9 @@
 import React from "react"
 import "./ThemeToggle.css"
 
-export default function ThemeToggle({ theme, setTheme }) {
+const ThemeToggle = ({ theme, setTheme }) => {
     const isChecked = theme === 'dark'
-    function handleChange() {
+    const handleChange = () => {
         setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))
     }
 
@@ -21,3 +21,5 @@ export default function ThemeToggle({ theme, setTheme }) {
         </div>
     )
 }
+
+export default ThemeToggle
