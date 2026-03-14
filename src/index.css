@@ -200,7 +200,14 @@ p {
 }
 
 .listHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1em;
+}
+
+.listHeader .fa-trash-can {
+  margin-left: auto;
 }
 
 .listHeader input {

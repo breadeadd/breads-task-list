@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 
-const ListHeader = () => {
+const ListHeader = ({ id, initialTitle, onDelete }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [title, setTitle] = useState("Enter list name");
+    const [title, setTitle] = useState("New list");
 
     const toggleEdit = () => {
         setIsEditing(!isEditing);
@@ -27,6 +27,9 @@ const ListHeader = () => {
                 <i onClick = {toggleEdit} className="fa-solid fa-pencil"></i>
             </>
         )}
+        <i 
+            className="fa-regular fa-trash-can" 
+            onClick={() => onDelete(id)}></i>
 
     </div>
   )
