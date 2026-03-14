@@ -13,6 +13,7 @@ const App = () => {
   const [todoValue, setTodoValue] = useState('')
   const [completed, setCompleted] = useState([]);
   const [lists, setLists] = useState([])
+  const [activeListId, setActiveListId] = useState(null)
   const sessionCount= completed.length;
 
   //theme save
@@ -84,16 +85,21 @@ const App = () => {
   function handleAddList() {
     const newList = {
       id: Date.now(),
-      title: 'New List'
+      title: 'New List',
+      todos: []
     }
     const updatedLists = [...lists, newList]
     setLists(updatedLists)
+    setActiveListId(newList.id)
     persistLists(updatedLists)
   }
 
   function handleDeleteList(id) {
     const updatedLists = lists.filter(list => list.id !== id)
     setLists(updatedLists)
+    if (activeListId === id) {
+      setActiveListId(updatedLists[0]?.id ?? null)
+    }
     persistLists(updatedLists)
   }
 
@@ -142,8 +148,12 @@ const App = () => {
     // lists
     const localListsRaw = localStorage.getItem('lists')
     if (localListsRaw) {
-      const parsedLists = JSON.parse(localListsRaw).lists || []
+      const parsedLists = (JSON.parse(localListsRaw).lists || []).map((list) => ({
+        ...list,
+        todos: Array.isArray(list.todos) ? list.todos : []
+      }))
       setLists(parsedLists)
+      setActiveListId(parsedLists[0]?.id ?? null)
     }
 
   }, [])
@@ -155,6 +165,8 @@ const App = () => {
       <TodoList handleCompleteTodo={handleCompleteTodo} handleEditTodo={handleEditTodo} handleDeleteTodo={handleDeleteTodo} todos={todos} />
       <ListsContainer
         lists={lists}
+        activeListId={activeListId}
+        onSelectList={setActiveListId}
         handleAddList={handleAddList}
         handleDeleteList={handleDeleteList}
         handleUpdateListTitle={handleUpdateListTitle}

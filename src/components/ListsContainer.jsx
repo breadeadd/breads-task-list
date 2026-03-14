@@ -1,7 +1,14 @@
 import React from 'react'
 import ListHeader from './ListHeader'
 
-const ListsContainer = ({ lists, handleAddList, handleDeleteList, handleUpdateListTitle }) => {
+const ListsContainer = ({
+  lists,
+  activeListId,
+  onSelectList,
+  handleAddList,
+  handleDeleteList,
+  handleUpdateListTitle
+}) => {
 
   return (
     <div className = "listContainer">
@@ -13,6 +20,9 @@ const ListsContainer = ({ lists, handleAddList, handleDeleteList, handleUpdateLi
           key={list.id} 
           id = {list.id}
           initialTitle={list.title} 
+          todos={list.todos}
+          isActive={activeListId === list.id}
+          onSelect={onSelectList}
           onDelete = {handleDeleteList}
           onUpdate = {handleUpdateListTitle}
           />

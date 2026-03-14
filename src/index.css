@@ -203,7 +203,7 @@ p {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1em;
+  font-size: 1.2em;
 }
 
 .listHeader .fa-trash-can {
@@ -217,7 +217,7 @@ p {
   outline: none;
   background: var(--item-colour);
   transition-duration: 200ms;
-  font-size: 0.8em;
+  font-size: 1em;
 }
 
 .fa-pencil, .fa-floppy-disk {
