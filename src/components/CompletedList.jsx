@@ -7,7 +7,7 @@ const CompletedList = ({ todos, handleUndoCompleted }) => {
             {todos.map((completed, index) => {
                     return(
                     <CompletedCard key={index} index={index} handleUndoCompleted={handleUndoCompleted}>
-                        <p>{completed}</p>
+                        <p>{completed.text}</p>
                     </CompletedCard>
                 )
             })}

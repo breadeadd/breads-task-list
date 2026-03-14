@@ -43,7 +43,12 @@ const App = () => {
   }
   
   function handleAddTodos(newTodo) {
-    const newTodoList = [...todos, newTodo]
+    const newTodoItem = {
+      id: Date.now(),
+      text: newTodo
+    }
+
+    const newTodoList = [...todos, newTodoItem]
     persistTodos(newTodoList)
     setTodos(newTodoList)
   }
@@ -58,7 +63,7 @@ const App = () => {
 
   function handleEditTodo(index) {
     const valueToBeEdited = todos[index]
-    setTodoValue(valueToBeEdited)
+    setTodoValue(valueToBeEdited.text)
     handleDeleteTodo(index)
   }
 
@@ -135,13 +140,31 @@ const App = () => {
 
     const localTodosRaw = localStorage.getItem('todos')
     if (localTodosRaw) {
-      const parsed = JSON.parse(localTodosRaw).todos || []
+      const parsed = (JSON.parse(localTodosRaw).todos || []).map((todo, index) => {
+        if (typeof todo === 'string') {
+          return {
+            id: Date.now() + index,
+            text: todo
+          }
+        }
+
+        return todo
+      })
       setTodos(parsed)
     }
 
     const localCompletedRaw = localStorage.getItem('completed')
     if (localCompletedRaw) {
-      const parsedCompleted = JSON.parse(localCompletedRaw).completed || []
+      const parsedCompleted = (JSON.parse(localCompletedRaw).completed || []).map((todo, index) => {
+        if (typeof todo === 'string') {
+          return {
+            id: Date.now() + index,
+            text: todo
+          }
+        }
+
+        return todo
+      })
       setCompleted(parsedCompleted)
     }
 
@@ -150,7 +173,18 @@ const App = () => {
     if (localListsRaw) {
       const parsedLists = (JSON.parse(localListsRaw).lists || []).map((list) => ({
         ...list,
-        todos: Array.isArray(list.todos) ? list.todos : []
+        todos: Array.isArray(list.todos)
+          ? list.todos.map((todo, index) => {
+              if (typeof todo === 'string') {
+                return {
+                  id: Date.now() + index,
+                  text: todo
+                }
+              }
+
+              return todo
+            })
+          : []
       }))
       setLists(parsedLists)
       setActiveListId(parsedLists[0]?.id ?? null)

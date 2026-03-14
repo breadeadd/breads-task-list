@@ -1,15 +1,32 @@
 import React from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
-const TodoCard = ({ children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo }) => {
+const TodoCard = ({ id, children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo }) => {
+    const {
+        setNodeRef,
+        attributes,
+        listeners,
+        transform,
+        transition,
+    } = useSortable({ id })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    }
+
+
   return (
-    <li className='todoItem'>
+    <li ref={setNodeRef} style={style} className='todoItem'>
+        <i className="fa-solid fa-grip-lines" {...attributes} {...listeners}></i>
         {children}
         <div className="actionsContainer">
             {/* Delete Button */}
             <button onClick={() => {
                 handleDeleteTodo(index)
             }}>
-                <i class="fa-regular fa-trash-can"></i>
+                <i className="fa-regular fa-trash-can"></i>
             </button>
 
             {/* Edit Button */}
@@ -23,7 +40,7 @@ const TodoCard = ({ children, handleDeleteTodo, index, handleEditTodo, handleCom
             <button onClick={() => {
                 handleCompleteTodo(index)
             }}>
-                <i class="fa-solid fa-check"></i>
+                <i className="fa-solid fa-check"></i>
             </button>
         </div>            
     </li>
