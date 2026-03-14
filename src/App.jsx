@@ -118,7 +118,6 @@ const App = () => {
       <TodoInput todoValue={todoValue} setTodoValue={setTodoValue} handleAddTodos={handleAddTodos} />
       <TodoList handleCompleteTodo={handleCompleteTodo} handleEditTodo={handleEditTodo} handleDeleteTodo={handleDeleteTodo} todos={todos} />
       <ListsContainer />
-      <ListHeader />
       <SessionHeader count={sessionCount} handleResetSession={handleResetSession}/>
       <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted}/>
     </div>

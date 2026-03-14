@@ -199,6 +199,26 @@ p {
   opacity: 0.7;
 }
 
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1em;
+}
+
+.listHeader input {
+  padding: 14px 18px;
+  border: none;
+  border-radius: 14px;
+  outline: none;
+  background: var(--item-colour);
+  transition-duration: 200ms;
+  font-size: 0.8em;
+}
+
+.fa-pencil, .fa-floppy-disk {
+  margin-left: 12px;
+}
+
 @media (min-width: 640px) {
 
   header button,
