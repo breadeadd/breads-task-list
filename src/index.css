@@ -229,6 +229,27 @@ p {
   gap: 14px;
 }
 
+.listDropzone {
+  min-height: 72px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 2px dashed var(--session-header-button);
+  border-radius: 14px;
+}
+
+.listDropzone.isOver {
+  border-color: var(--select-background);
+  background: color-mix(in srgb, var(--select-background) 12%, transparent);
+}
+
+.listDropzonePlaceholder {
+  list-style: none;
+  padding: 14px;
+  border-radius: 14px;
+  opacity: 0.7;
+  text-align: center;
+}
+
 @media (min-width: 640px) {
 
   header button,

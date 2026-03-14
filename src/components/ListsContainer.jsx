@@ -7,7 +7,10 @@ const ListsContainer = ({
   onSelectList,
   handleAddList,
   handleDeleteList,
-  handleUpdateListTitle
+  handleUpdateListTitle,
+  handleDeleteListTodo,
+  handleEditListTodo,
+  handleCompleteListTodo
 }) => {
 
   return (
@@ -25,6 +28,9 @@ const ListsContainer = ({
           onSelect={onSelectList}
           onDelete = {handleDeleteList}
           onUpdate = {handleUpdateListTitle}
+          onDeleteTodo={handleDeleteListTodo}
+          onEditTodo={handleEditListTodo}
+          onCompleteTodo={handleCompleteListTodo}
           />
         ))}
     </div>
