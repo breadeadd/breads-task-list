@@ -75,6 +75,7 @@ input {
 header {
   display: flex;
   align-items: stretch;
+  padding-bottom: 10px;
 }
 
 header,
@@ -83,6 +84,7 @@ header,
   width: 100%;
   margin: 0 auto;
   gap: 14px;
+  padding-bottom: 10px;
 }
 
 header input {
@@ -344,6 +346,77 @@ p {
 
 .signOutButton:hover {
   opacity: 0.7;
+}
+
+.page-nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--toggle-background);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+
+.page-tab.active {
+  background-color: var(--item-colour);
+  border: 2px solid;
+  border-color: var(--select-background);
+}
+
+.page-tab:hover:not(.active):not(.page-tab--add) {
+  opacity: 0.8;
+}
+
+.page-tab--add {
+  background-color: transparent;
+  opacity: 0.6;
+}
+
+.page-tab--add:hover {
+  opacity: 1;
+}
+
+.page-tab-title {
+  flex: 1;
+}
+
+.page-tab-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: "DM Mono", monospace;
+  font-weight: 500;
+  font-size: 1em;
+  width: 90px;
+  color: var(--text-colour);
+}
+
+.page-tab i {
+  font-size: 0.75em;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.page-tab i:hover {
+  opacity: 1;
+}
+
+.page-tab .fa-pencil,
+.page-tab .fa-floppy-disk {
+  margin-left: 0;
 }
 
 @media (min-width: 640px) {

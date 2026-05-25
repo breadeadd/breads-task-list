@@ -659,6 +659,127 @@ Your `.env` file only works locally — the build environment needs them set exp
 
 ---
 
+## 8. Pages Backend
+
+The app now supports multiple pages — independent workspaces each with their own todos and lists. This required a new `pages` table and a `page_id` column on the existing `todos` and `lists` tables.
+
+### New table: `pages`
+
+```sql
+CREATE TABLE pages (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users NOT NULL,
+  title text NOT NULL DEFAULT 'My Page',
+  position integer NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own pages"
+  ON pages FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### New columns on existing tables
+
+```sql
+ALTER TABLE todos ADD COLUMN page_id uuid REFERENCES pages(id) ON DELETE CASCADE;
+ALTER TABLE lists ADD COLUMN page_id uuid REFERENCES pages(id) ON DELETE CASCADE;
+```
+
+`ON DELETE CASCADE` means if a page is deleted, all its todos and lists are automatically deleted too.
+
+### How page_id scopes data
+
+Every Supabase query in `Page.jsx` filters by `page_id` so each page only sees its own data:
+
+```js
+// Loading — only fetch todos that belong to this page
+supabase.from('todos').select('*').eq('page_id', pageId).order('position')
+
+// Inserting — stamp new todos with this page's ID
+supabase.from('todos').insert({ user_id: user.id, page_id: pageId, text: newTodo, ... })
+```
+
+Without `page_id`, every page would show all of the user's todos.
+
+### Loading pages on login
+
+`App.jsx` fetches the user's pages after login and sets the first one as active. If the user has no pages yet (brand new account), it creates a default one automatically:
+
+```js
+async function loadPages() {
+  const { data, error } = await supabase
+    .from('pages')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('position')
+
+  if (data.length === 0) {
+    // New user — create a default page for them
+    const { data: newPage } = await supabase
+      .from('pages')
+      .insert({ user_id: user.id, title: 'My Page', position: 0 })
+      .select()
+      .single()
+
+    setPages([newPage])
+    setActivePage(newPage)
+    return
+  }
+
+  setPages(data)
+  setActivePage(data[0])
+}
+```
+
+### Creating and deleting pages
+
+```js
+// Create a new empty page and switch to it
+async function handleAddPage() {
+  const { data } = await supabase
+    .from('pages')
+    .insert({ user_id: user.id, title: 'New Page', position: pages.length })
+    .select()
+    .single()
+
+  setPages(prev => [...prev, data])
+  setActivePage(data)
+}
+
+// Delete a page — never delete the last one
+async function handleDeletePage(id) {
+  if (pages.length === 1) return
+  const updated = pages.filter(p => p.id !== id)
+  setPages(updated)
+  if (activePage?.id === id) setActivePage(updated[0])
+  await supabase.from('pages').delete().eq('id', id)
+}
+```
+
+### Updated migration
+
+`migrateFromLocalStorage` now takes a `pageId` and stamps all migrated data with it. A default page is created first, and its ID is passed into the migration:
+
+```js
+// In loadPages, before migrating:
+const { data: newPage } = await supabase
+  .from('pages')
+  .insert({ user_id: user.id, title: 'My Page', position: 0 })
+  .select()
+  .single()
+
+await migrateFromLocalStorage(user.id, newPage.id)
+
+// In the migration function, every insert includes page_id:
+{ user_id: userId, page_id: pageId, list_id: null, text: todo.text, ... }
+```
+
+---
+
 ## Summary of Files Changed
 
 | File | Change |
@@ -666,7 +787,8 @@ Your `.env` file only works locally — the build environment needs them set exp
 | `.env` | New — holds Supabase URL and anon key |
 | `src/supabase.js` | New — Supabase client singleton |
 | `src/components/AuthForm.jsx` | New — sign-up / sign-in form |
-| `src/App.jsx` | Replace all `localStorage` calls with Supabase; add user/auth state; add migration |
+| `src/App.jsx` | Replace all `localStorage` calls with Supabase; add user/auth state; add pages management; add migration |
+| `src/components/Page.jsx` | New — owns all todo/list state and Supabase calls, scoped to a single page |
 | `.gitignore` | Verify `.env` is listed |
 
 ---
@@ -676,3 +798,4 @@ Your `.env` file only works locally — the build environment needs them set exp
 - [Supabase JavaScript client docs](https://supabase.com/docs/reference/javascript/introduction) — full API reference for `select`, `insert`, `update`, `delete`, `upsert`, and auth methods.
 - [Supabase Auth guide](https://supabase.com/docs/guides/auth) — deeper auth options including OAuth (Google, GitHub, etc.).
 - [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security) — more policy examples.
+- [PAGES.md](PAGES.md) — How the multi-page feature works end to end.
