@@ -12,9 +12,11 @@ From the implementation, the app is designed around three practical goals:
 
 The app intentionally avoids heavy planning features (deadlines, calendars, complex workflows). Its product strategy is low-friction input + visible progress.
 
+---
+
 ## 2. Tech Stack and Dependencies
 
-## Runtime and Build
+### Runtime and Build
 
 - React 19: Component-based UI and state-driven rendering.
 - React DOM 19: Browser rendering target for React.
@@ -25,7 +27,7 @@ Why this combination:
 - Vite provides quick startup and hot module updates for frontend iteration.
 - React provides predictable UI updates from state changes.
 
-## Interaction and UX Libraries
+### Interaction and UX Libraries
 
 - @dnd-kit/core
 - @dnd-kit/sortable
@@ -37,161 +39,202 @@ Why they are used:
 - Support sorting within a container and moving tasks across containers.
 - Provide transform utilities for smooth dragging animations.
 
-## Persistence
+### Persistence
 
-- Browser localStorage (direct Web API usage).
+- Supabase (cloud Postgres database + auth).
 
 Why it is used:
 
-- Keeps app state between page refreshes with no backend.
-- Supports the product promise that tasks/lists/session progress remain available later.
+- Persists todos, lists, and pages to a real database so data is available across devices and sessions.
+- Built-in auth handles user accounts (sign up, sign in, sign out) without a custom backend.
+- Row Level Security ensures users can only access their own data.
 
-Note: The package use-local-storage exists in dependencies but is not used in the current source.
+> **Previously:** The app used `localStorage` for persistence with no user accounts. On first login, any existing `localStorage` data is automatically migrated to Supabase. See [SUPABASE.md](SUPABASE.md) for details.
 
-## Styling
+### Styling
 
-- Plain CSS files (src/index.css and src/components/ThemeToggle.css).
+- Plain CSS files (`src/index.css` and `src/components/ThemeToggle.css`).
 - CSS custom properties (variables) for theming.
-- Font Awesome loaded from CDN in index.html for iconography.
-- Google Fonts (DM Mono) loaded from CDN in index.html.
+- Font Awesome loaded from CDN in `index.html` for iconography.
+- Google Fonts (DM Mono) loaded from CDN in `index.html`.
 
 Why this approach:
 
 - Minimal setup and straightforward customization.
-- Theme values can switch globally by changing data-theme.
+- Theme values can switch globally by changing `data-theme`.
 
-## Code Quality Tooling
+### Code Quality Tooling
 
 - ESLint with:
-- @eslint/js
-- eslint-plugin-react-hooks
-- eslint-plugin-react-refresh
-- globals
+  - @eslint/js
+  - eslint-plugin-react-hooks
+  - eslint-plugin-react-refresh
+  - globals
 
 Purpose:
 
 - Catch common JavaScript and React issues.
 - Enforce hooks correctness and better dev ergonomics.
 
+---
+
 ## 3. Architecture and Directory Structure
 
 Top-level structure:
 
-- src/main.jsx: React bootstrap and root render.
-- src/App.jsx: Main orchestration component and state container.
-- src/components: Presentational and interaction components.
-- src/index.css: Global styling and theme tokens.
-- docs/ARCHITECTURE.md: Architecture documentation.
+- `src/main.jsx` — React bootstrap and root render.
+- `src/App.jsx` — Auth, theme, and pages management. Renders `<Page>`.
+- `src/supabase.js` — Supabase client singleton.
+- `src/components/` — All UI and logic components.
+- `src/index.css` — Global styling and theme tokens.
+- `docs/` — Architecture and feature documentation.
 
-How organization works in practice:
+### How the two-layer structure works
 
-- Core business logic and application state are centralized in App.jsx.
-- UI responsibilities are split into focused, reusable components in src/components.
-- There is no hooks directory because custom hooks are not yet extracted; state logic remains in App.jsx.
-- There is no router directory because the app is currently a single view with no multi-page navigation.
+The app is split into two distinct layers of responsibility:
 
-Component responsibility map:
+**`App.jsx` — the shell**
 
-- TodoInput: Captures new task text and submits actions to parent handlers.
-- TodoList and TodoCard: Render and manage interactions for active tasks.
-- ListsContainer and ListHeader: Manage custom list sections and nested list tasks.
-- SessionHeader: Displays completed count and session reset action.
-- CompletedList and CompletedCard: Show completed tasks and support undo.
-- ThemeToggle: Toggles dark/light theme.
+Owns: authentication state, theme, the list of pages, which page is active, and page CRUD (create/delete). Renders the page tab bar and a single `<Page>` component for whichever page is active.
 
-Architectural style:
+**`Page.jsx` — the workspace**
+
+Owns: all todo and list state, all drag-and-drop logic, all Supabase reads/writes for todos and lists. Receives `pageId` and `user` as props from `App.jsx`. Knows nothing about other pages or auth.
+
+This split exists so that switching pages fully resets the workspace state — React destroys and recreates `Page` when the `key` prop changes (see [PAGES.md](PAGES.md)).
+
+### Component responsibility map
+
+| Component | Responsibility |
+|---|---|
+| `App.jsx` | Auth, theme, pages list, active page, renders `<Page>` |
+| `Page.jsx` | All todo/list state, DnD logic, Supabase calls for todos/lists |
+| `AuthForm` | Sign-up and sign-in form |
+| `TodoInput` | Captures new task text and submits to parent handlers |
+| `TodoList` + `TodoCard` | Render and manage interactions for active tasks |
+| `ListsContainer` + `ListHeader` | Manage custom list sections and nested list tasks |
+| `SessionHeader` | Displays completed count and session reset action |
+| `CompletedList` + `CompletedCard` | Show completed tasks and support undo |
+| `ThemeToggle` | Toggles dark/light theme |
+
+### Architectural style
 
 - Container-presentational hybrid.
-- App.jsx behaves as the container (state + logic).
-- Most components are presentation-first and receive callbacks/values as props.
+- `App.jsx` is a thin shell container (auth + pages).
+- `Page.jsx` is the main container (todos/lists state + logic).
+- Most other components are presentation-first and receive callbacks/values as props.
+
+---
 
 ## 4. Key Data Flow and Source of Truth
 
-## Source of Truth
+### Source of Truth
 
-The primary source of truth is React state in App.jsx.
+The primary source of truth is Supabase. React state in `App.jsx` and `Page.jsx` is a local cache of what is in the database.
 
-Core state slices:
+**`App.jsx` state:**
 
-- todos: Active tasks in the root inbox.
-- lists: Array of list objects, each with title and nested todos.
-- completed: Tasks finished in current session.
-- todoValue: Current input text.
-- theme: Active visual mode.
+- `user` — the currently authenticated user object.
+- `authLoading` — whether the initial auth check is still in progress.
+- `pages` — array of the user's pages.
+- `activePage` — the currently selected page.
+- `theme` — active visual mode (stored in `localStorage`, not Supabase).
+
+**`Page.jsx` state (scoped to one page):**
+
+- `todos` — active tasks in the root inbox for this page.
+- `lists` — named list sections with their nested todos, for this page.
+- `completed` — tasks completed this session.
+- `todoValue` — current text in the input field.
 - Additional UI state for drag context and inline editing.
 
-## Data Flow Direction
+### Data Flow Direction
 
 Data follows a top-down flow:
 
-1. App.jsx owns state.
-2. App.jsx passes values and handlers to child components via props.
+1. `App.jsx` owns auth + pages state. Passes `pageId` and `user` down to `Page.jsx`.
+2. `Page.jsx` owns todo/list state. Passes values and handlers to child components via props.
 3. Child components trigger callbacks (add, edit, delete, complete, reorder).
-4. App.jsx updates state immutably.
-5. Updated state re-renders the UI.
+4. `Page.jsx` updates state immutably and writes to Supabase.
 
-Persistence flow:
+### Persistence Flow
 
-- On startup, useEffect reads localStorage and hydrates todos, completed, and lists.
-- On each relevant action, helper functions persistTodos, persistCompleted, and persistLists serialize updated arrays back to localStorage.
+On login:
+- `App.jsx` fetches the user's pages from Supabase.
+- The active `pageId` is passed to `<Page>`.
+- `Page.jsx` fetches todos and lists filtered by `page_id`.
 
-Drag-and-drop flow:
+On each write:
+- `Page.jsx` updates local state immediately (optimistic update).
+- Then writes the change to Supabase in the background.
 
-- DndContext is declared in App.jsx.
-- Drag events are handled in App.jsx (start, over, end, cancel).
+### Drag-and-drop Flow
+
+- `DndContext` is declared in `Page.jsx`.
+- Drag events are handled in `Page.jsx` (start, over, end, cancel).
 - Utility functions resolve container ownership and compute immutable reorder/move operations.
-- Final results are written to state and localStorage.
+- Final results are written to state and persisted to Supabase via `upsert`.
 
-## Important architecture concept in this app
+### Important Architecture Concept: Prop Drilling
 
-Prop drilling:
+Prop drilling means passing data and callbacks through several component layers. This app uses prop drilling from `Page.jsx` to deep children. This is acceptable at the current size but can become hard to maintain as complexity grows.
 
-- Prop drilling means passing data and callbacks through several component layers.
-- This app uses prop drilling heavily from App.jsx to deep children.
-- This is acceptable at current size, but can become hard to maintain as complexity grows.
+React Context (not currently used) would let shared state and actions be consumed without manually passing props through every level. If this app grows significantly, Context could reduce prop-chain complexity.
 
-Context API (not currently used):
-
-- React Context lets shared state and actions be consumed without manually passing props through every level.
-- If this app grows significantly, Context (or another state library) could reduce prop-chain complexity.
+---
 
 ## 5. Entry Points and Runtime Boot Sequence
 
 Primary entry points:
 
-- index.html: Hosts root div, global font/icon includes, and loads src/main.jsx.
-- src/main.jsx: Creates React root and renders App within StrictMode.
-- src/App.jsx: Main application runtime (state, effects, drag logic, persistence, component composition).
+- `index.html` — Hosts root div, global font/icon includes, and loads `src/main.jsx`.
+- `src/main.jsx` — Creates React root and renders `App` within `StrictMode`.
+- `src/App.jsx` — Checks auth session, loads pages, renders shell UI and `<Page>`.
+- `src/components/Page.jsx` — Loads page-specific todos/lists, renders full workspace.
+
+Boot sequence:
+
+1. `App` mounts — auth check begins (`authLoading = true`), shows loading state.
+2. Auth resolves — `user` is set (or null). If null, `AuthForm` is shown.
+3. On login — `loadPages` runs, fetches user's pages from Supabase.
+4. `activePage` is set — `<Page key={activePage.id} pageId={...}>` renders.
+5. `Page` mounts — `loadData` runs, fetches todos and lists for that `pageId`.
+6. UI is ready.
 
 Current routing/provider status:
 
 - No React Router is configured.
-- No global provider architecture is configured (for example Context Provider, Redux Provider, or query provider).
-- App-level state is therefore the runtime hub.
+- No global provider architecture is configured (Context Provider, Redux, etc.).
+- App-level state is the runtime hub for auth and pages; Page-level state handles todos/lists.
 
-## 6. Practical Beginner Notes
+---
 
-- If you need to change app behavior, start with App.jsx first; most core logic lives there.
-- If you need to change look and layout, use src/index.css and component-specific CSS.
-- If you need to add a new feature that shares data across many components, consider introducing Context to reduce prop drilling.
-- If you need multi-page behavior, introduce a router and move page-level concerns into dedicated modules.
+## 6. Practical Notes
+
+- To change how todos or lists behave, start in `Page.jsx` — that's where all the todo/list logic lives now.
+- To change auth, pages, or theme behavior, look in `App.jsx`.
+- To change look and layout, use `src/index.css` and component-specific CSS.
+- If you need a new feature that shares data across many components, consider introducing Context to reduce prop drilling.
+- The `key={activePage.id}` on `<Page>` in `App.jsx` is intentional — removing it would cause state from one page to bleed into another when switching tabs.
+
+---
 
 ## 7. Suggested Evolution Path
 
 Reasonable next architecture steps:
 
-1. Extract reusable logic from App.jsx into custom hooks (for example useTodos, useLists, useSession, useTheme).
-2. Add a small data-layer utility for localStorage to centralize parsing/serialization and error handling.
+1. Extract reusable logic from `Page.jsx` into custom hooks (for example `useTodos`, `useLists`, `useSession`).
+2. Add page title editing — an inline rename input in the tab bar, similar to how list titles are renamed.
 3. Introduce Context when prop drilling starts reducing maintainability.
 4. Add tests for state transitions (add/edit/delete/complete/drag operations).
-
-This keeps the current beginner-friendly structure while improving scalability and maintainability over time.
 
 ---
 
 ## Further Reading
 
-Detailed deep-dives are available for the two most complex areas of the codebase:
+Detailed deep-dives are available for specific areas of the codebase:
 
-- [DATA_MODEL.md](DATA_MODEL.md) — Object shapes, nested list/todo structure, immutable update patterns, localStorage serialization format.
-- [DND_KIT.md](DND_KIT.md) — How dnd-kit is used in this app: the two drag types, container ID system, collision detection, sensor configuration, and a step-by-step walkthrough of every drag event handler.
+- [SUPABASE.md](SUPABASE.md) — Full Supabase setup: schema, auth, RLS, CRUD patterns, and the pages backend.
+- [PAGES.md](PAGES.md) — How the multi-page feature works end to end: database schema, data flow, and the key prop explained.
+- [DATA_MODEL.md](DATA_MODEL.md) — Object shapes, nested list/todo structure, and immutable update patterns.
+- [DND_KIT.md](DND_KIT.md) — How dnd-kit is used: the two drag types, container ID system, collision detection, sensor configuration, and a step-by-step walkthrough of every drag event handler.
