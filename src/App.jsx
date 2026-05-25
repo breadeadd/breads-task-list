@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import AuthForm from './components/AuthForm'
 import ThemeToggle from "./components/ThemeToggle"
 import Page from "./components/Page"
+import PageTab from "./components/PageTab"
 import SessionHeader from "./components/SessionHeader"
 import CompletedList from "./components/CompletedList"
 
@@ -61,6 +62,7 @@ const App = () => {
   const [authLoading, setAuthLoading] = useState(true)
   const [pages, setPages] = useState([])
   const [activePage, setActivePage] = useState(null)
+  const [pendingRenamePageId, setPendingRenamePageId] = useState(null)
 
   // completed lives here so SessionHeader and CompletedList can live here too
   const [completed, setCompleted] = useState([])
@@ -171,6 +173,7 @@ const App = () => {
     if (error) { console.error(error); return }
     setPages(prev => [...prev, data])
     setActivePage(data)
+    setPendingRenamePageId(data.id)
   }
 
   async function handleDeletePage(id) {
@@ -179,6 +182,12 @@ const App = () => {
     setPages(updated)
     if (activePage?.id === id) setActivePage(updated[0])
     await supabase.from('pages').delete().eq('id', id)
+  }
+
+  async function handleUpdatePageTitle(id, newTitle) {
+    setPages(prev => prev.map(p => p.id === id ? { ...p, title: newTitle } : p))
+    if (activePage?.id === id) setActivePage(prev => ({ ...prev, title: newTitle }))
+    await supabase.from('pages').update({ title: newTitle }).eq('id', id)
   }
 
   async function handleResetSession() {
@@ -210,15 +219,21 @@ const App = () => {
 
       <div className="page-nav">
         {pages.map(page => (
-          <button
+          <PageTab
             key={page.id}
-            className={activePage?.id === page.id ? 'page-tab active' : 'page-tab'}
-            onClick={() => setActivePage(page)}
-          >
-            {page.title}
-          </button>
+            page={page}
+            isActive={activePage?.id === page.id}
+            shouldAutoEdit={pendingRenamePageId === page.id}
+            onAutoEditHandled={() => setPendingRenamePageId(null)}
+            onSelect={setActivePage}
+            onRename={handleUpdatePageTitle}
+            onDelete={handleDeletePage}
+            canDelete={pages.length > 1}
+          />
         ))}
-        <button className="page-tab" onClick={handleAddPage} disabled={pages.length >= 8}>+ New Page</button>
+        {pages.length < 8 && (
+          <button className="page-tab page-tab--add" onClick={handleAddPage}>+ New Page</button>
+        )}
       </div>
 
       {activePage && (
