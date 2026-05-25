@@ -20,8 +20,8 @@ This app supports **two completely different kinds of drag operations** happenin
 
 | Type | What gets dragged | ID format | Example |
 |---|---|---|---|
-| `todo-item` | An individual task card | Numeric (e.g. `1710000000001`) | Moving "Buy milk" into a list |
-| `list-section` | An entire list section block | Prefixed string (e.g. `list-section-42`) | Reordering "Uni" above "Work" |
+| `todo-item` | An individual task card | UUID string (e.g. `"a1b2c3d4-..."`) | Moving "Buy milk" into a list |
+| `list-section` | An entire list section block | Prefixed string (e.g. `"list-section-<uuid>"`) | Reordering "Uni" above "Work" |
 
 They share the same drag event handlers but are routed through separate logic branches using the `isListSectionId()` utility:
 
@@ -42,7 +42,7 @@ The app defines virtual "containers" — buckets that own a set of todos. Each c
 | Container | ID | Owns |
 |---|---|---|
 | Root inbox | `'root-todos'` | The top-level `todos` state array |
-| List section | `'list-42'` (numeric suffix = list id) | That list's `todos` array |
+| List section | `'list-<uuid>'` (UUID suffix = list id) | That list's `todos` array |
 
 The constant `ROOT_TODO_CONTAINER = 'root-todos'` is used throughout the drag logic to identify the top list.
 
@@ -83,7 +83,7 @@ Returns an updated `{ nextTodos, nextLists }` pair with the new item array appli
 
 ### `applyContainerState(nextTodos, nextLists)`
 
-The final write step. Calls `setTodos`, `setLists`, `persistTodos`, and `persistLists` in one place.
+Applies updated todo and list arrays to React state by calling `setTodos` and `setLists`. Used during live drag-over updates. Supabase is written separately via `persistDragState` at the end of a drag.
 
 ---
 
@@ -231,12 +231,12 @@ User grabs a todo card
 User hovers card over a different list
   → onDragOver fires repeatedly:
       findContainer(todo.id)     → 'root-todos'
-      findContainer(over target) → 'list-42'
-      containers differ → remove from root-todos, insert into list-42
-      applyContainerState → setTodos + setLists + persist both
+      findContainer(over target) → 'list-<uuid>'
+      containers differ → remove from root-todos, insert into list-<uuid>
+      applyContainerState → setTodos + setLists (state only, no Supabase write yet)
 
 User releases
   → onDragEnd fires:
-      containers differ → early return (move already applied by onDragOver)
+      containers differ → persistDragState(todos, lists) → Supabase upsert
       activeDragId = null, activeDragType = null
 ```

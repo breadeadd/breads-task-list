@@ -659,9 +659,7 @@ Your `.env` file only works locally — the build environment needs them set exp
 
 ---
 
----
-
-## 7. Pages Backend
+## 8. Pages Backend
 
 The app now supports multiple pages — independent workspaces each with their own todos and lists. This required a new `pages` table and a `page_id` column on the existing `todos` and `lists` tables.
 

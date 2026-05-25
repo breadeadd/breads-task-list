@@ -6,8 +6,8 @@ The pages feature lets a user have multiple independent workspaces — each call
 
 Before this feature, the whole app was one flat workspace per user. Now:
 
-- `App.jsx` manages authentication, theme, and the list of pages.
-- `Page.jsx` manages everything inside a single page: todos, lists, drag-and-drop, completed tasks.
+- `App.jsx` manages authentication, theme, the list of pages, and the session-wide completed list.
+- `Page.jsx` manages everything inside a single page: todos, lists, and drag-and-drop.
 
 ---
 
@@ -26,24 +26,30 @@ supabase.from('pages').select('*').eq('user_id', user.id).order('position')
 
 ### 2. Page navigation
 
-`App.jsx` renders a tab bar — one button per page plus a "+ New Page" button:
+`App.jsx` renders a tab bar using `PageTab` components, plus a "+ New Page" button:
 
 ```jsx
 <div className="page-nav">
   {pages.map(page => (
-    <button
+    <PageTab
       key={page.id}
-      className={activePage?.id === page.id ? 'page-tab active' : 'page-tab'}
-      onClick={() => setActivePage(page)}
-    >
-      {page.title}
-    </button>
+      page={page}
+      isActive={activePage?.id === page.id}
+      shouldAutoEdit={pendingRenamePageId === page.id}
+      onAutoEditHandled={() => setPendingRenamePageId(null)}
+      onSelect={setActivePage}
+      onRename={handleUpdatePageTitle}
+      onDelete={handleDeletePage}
+      canDelete={pages.length > 1}
+    />
   ))}
-  <button className="page-tab" onClick={handleAddPage}>+ New Page</button>
+  {pages.length < 8 && (
+    <button className="page-tab page-tab--add" onClick={handleAddPage}>+ New Page</button>
+  )}
 </div>
 ```
 
-Clicking a tab updates `activePage` in `App.jsx` state, which re-renders `<Page>` with the new `pageId`.
+Clicking a tab calls `onSelect`, which updates `activePage` in `App.jsx` state and re-renders `<Page>` with the new `pageId`.
 
 ### 3. The `key` prop
 
@@ -112,6 +118,34 @@ supabase.from('lists').insert({
 
 ---
 
+## PageTab Component
+
+`PageTab` (`src/components/PageTab.jsx`) is a presentational component that renders a single tab in the page nav bar. It owns only local UI state — all Supabase operations go through `App.jsx` callbacks.
+
+**What it renders:**
+
+- Default: a page title label, a pencil icon to enter rename mode, and (if `canDelete` is true) an X icon to delete the page.
+- While renaming: a text input, and a save icon. Pressing Enter or clicking away also saves.
+
+**Key props:**
+
+| Prop | Description |
+|---|---|
+| `page` | The page object `{ id, title, ... }` |
+| `isActive` | Adds the `.active` class to the tab |
+| `shouldAutoEdit` | If true, the tab enters rename mode automatically on mount |
+| `onAutoEditHandled` | Called after the auto-edit is triggered, so `App` clears `pendingRenamePageId` |
+| `onSelect` | Called with the page object when the tab is clicked |
+| `onRename` | Called with `(id, newTitle)` when a rename is saved |
+| `onDelete` | Called with `id` when the X is clicked |
+| `canDelete` | Hides the X button when there is only one page |
+
+**Auto-edit flow:**
+
+When a new page is created, `App.jsx` sets `pendingRenamePageId` to the new page's id. The matching `PageTab` receives `shouldAutoEdit={true}`, and on mount it enters rename mode automatically so the user can type a name immediately. Once triggered, it calls `onAutoEditHandled` to clear `pendingRenamePageId`.
+
+---
+
 ## Database Schema
 
 Three tables are involved:
@@ -126,14 +160,14 @@ Three tables are involved:
 | `position` | `integer` | Display order of tabs |
 | `created_at` | `timestamptz` | When it was created |
 
-**`lists`** — now has `page_id`:
+**`lists`** — has `page_id`:
 
 | Column | Type | Description |
 |---|---|---|
 | `page_id` | `uuid` (nullable FK) | Which page this list belongs to |
 | *(all other columns unchanged)* | | |
 
-**`todos`** — now has `page_id`:
+**`todos`** — has `page_id`:
 
 | Column | Type | Description |
 |---|---|---|
@@ -172,20 +206,24 @@ ALTER TABLE lists ADD COLUMN page_id uuid REFERENCES pages(id) ON DELETE CASCADE
 |---|---|
 | Auth (sign in/out, session) | `App.jsx` |
 | Theme (dark/light) | `App.jsx` |
-| Pages list, active page, create/delete page | `App.jsx` |
-| Todos state, lists state, drag-and-drop, completed | `Page.jsx` |
+| Pages list, active page, create/rename/delete page | `App.jsx` |
+| Completed todos (session-wide, across all pages) | `App.jsx` |
+| Tab UI, local rename state, auto-edit trigger | `PageTab.jsx` |
+| Todos state, lists state, drag-and-drop | `Page.jsx` |
 | All Supabase calls for todos and lists | `Page.jsx` |
 
 `Page.jsx` knows nothing about other pages or auth. It only knows its own `pageId` and the `user` object (needed for `user_id` on inserts).
 
 ---
 
-## Creating and Deleting Pages
+## Creating, Renaming, and Deleting Pages
 
 **Create:**
 
 ```js
 async function handleAddPage() {
+  if (pages.length >= 8) return
+
   const { data } = await supabase
     .from('pages')
     .insert({ user_id: user.id, title: 'New Page', position: pages.length })
@@ -193,7 +231,18 @@ async function handleAddPage() {
     .single()
 
   setPages(prev => [...prev, data])
-  setActivePage(data)   // immediately switch to the new page
+  setActivePage(data)
+  setPendingRenamePageId(data.id)  // triggers auto-edit in the new PageTab
+}
+```
+
+**Rename:**
+
+```js
+async function handleUpdatePageTitle(id, newTitle) {
+  setPages(prev => prev.map(p => p.id === id ? { ...p, title: newTitle } : p))
+  if (activePage?.id === id) setActivePage(prev => ({ ...prev, title: newTitle }))
+  await supabase.from('pages').update({ title: newTitle }).eq('id', id)
 }
 ```
 
@@ -210,6 +259,14 @@ async function handleDeletePage(id) {
   // ON DELETE CASCADE handles the todos and lists automatically
 }
 ```
+
+---
+
+## Completed Todos: Cross-Page Ownership
+
+Completed todos are owned by `App.jsx`, not `Page.jsx`. This means the completed list and session counter are visible regardless of which page is active.
+
+When a todo is completed inside `Page.jsx`, it calls `setCompleted` (passed down as a prop from `App.jsx`) to add it to the shared list. When undoing a completed todo, `App.jsx` calls back into the active `Page.jsx` via `addTodoBackRef` to restore the todo to local state without a re-fetch — but only if the todo belongs to the currently active page.
 
 ---
 
