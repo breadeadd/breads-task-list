@@ -4,8 +4,6 @@ import { arrayMove } from "@dnd-kit/sortable"
 import { supabase } from '../supabase'
 import TodoInput from "./TodoInput"
 import TodoList from "./TodoList"
-import SessionHeader from "./SessionHeader"
-import CompletedList from "./CompletedList"
 import ListsContainer from "./ListsContainer"
 
 // Note: '../supabase' goes up one folder because Page.jsx is inside /components
@@ -30,12 +28,11 @@ function parseListIdFromSectionId(id) {
   return String(id).replace('list-section-', '')
 }
 
-// Page receives pageId (which page to load) and user (for Supabase inserts).
-// App.jsx passes these down — Page doesn't manage auth at all.
-const Page = ({ pageId, user }) => {
+// Page receives pageId, user, setCompleted (owned by App), and addTodoBackRef
+// (a ref App uses to call back into Page when undoing a completed todo).
+const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
   const [todos, setTodos] = useState([])
   const [todoValue, setTodoValue] = useState('')
-  const [completed, setCompleted] = useState([])
   const [lists, setLists] = useState([])
   const [activeListId, setActiveListId] = useState(null)
   const [pendingRenameListId, setPendingRenameListId] = useState(null)
@@ -48,7 +45,19 @@ const Page = ({ pageId, user }) => {
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
   const todoInputRef = useRef(null)
-  const sessionCount = completed.length
+
+  // Register the addTodoBack function so App.jsx can call it from handleUndoCompleted.
+  // This lets undo update Page's local todos state instantly without a Supabase re-fetch.
+  useEffect(() => {
+    if (addTodoBackRef) {
+      addTodoBackRef.current = (todo) => {
+        setTodos(prev => [...prev, { ...todo, is_completed: false }])
+      }
+    }
+    return () => {
+      if (addTodoBackRef) addTodoBackRef.current = null
+    }
+  }, [])
 
   // Load this page's todos and lists from Supabase whenever pageId changes.
   // The .eq('page_id', pageId) filter is what scopes data to this specific page —
@@ -74,14 +83,12 @@ const Page = ({ pageId, user }) => {
       if (todosError) { console.error(todosError); return }
 
       const rootTodos = todosData.filter(t => !t.list_id && !t.is_completed)
-      const completedTodos = todosData.filter(t => t.is_completed)
       const hydratedLists = listsData.map(list => ({
         ...list,
         todos: todosData.filter(t => t.list_id === list.id && !t.is_completed)
       }))
 
       setTodos(rootTodos)
-      setCompleted(completedTodos)
       setLists(hydratedLists)
       setActiveListId(hydratedLists[0]?.id ?? null)
     }
@@ -157,14 +164,6 @@ const Page = ({ pageId, user }) => {
     setTodos(prev => prev.filter((_, i) => i !== index))
     setCompleted(prev => [...prev, { ...todo, is_completed: true }])
     await supabase.from('todos').update({ is_completed: true }).eq('id', todo.id)
-  }
-
-  async function handleResetSession() {
-    const completedIds = completed.map(t => t.id)
-    setCompleted([])
-    if (completedIds.length > 0) {
-      await supabase.from('todos').delete().in('id', completedIds)
-    }
   }
 
   async function handleDeleteListTodo(listId, index) {
@@ -408,13 +407,6 @@ const Page = ({ pageId, user }) => {
     await supabase.from('lists').update({ title: newTitle }).eq('id', id)
   }
 
-  async function handleUndoCompleted(index) {
-    const todo = completed[index]
-    setCompleted(prev => prev.filter((_, i) => i !== index))
-    setTodos(prev => [...prev, { ...todo, is_completed: false }])
-    await supabase.from('todos').update({ is_completed: false }).eq('id', todo.id)
-  }
-
   return (
     <div className="page-workspace">
       <TodoInput
@@ -456,8 +448,6 @@ const Page = ({ pageId, user }) => {
           handleCompleteListTodo={handleCompleteListTodo}
         />
       </DndContext>
-      <SessionHeader count={sessionCount} handleResetSession={handleResetSession} />
-      <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted} />
     </div>
   )
 }

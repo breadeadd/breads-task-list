@@ -346,6 +346,10 @@ p {
   opacity: 0.7;
 }
 
+.page-workspace {
+  padding-bottom: 10px;
+}
+
 @media (min-width: 640px) {
 
   header button,

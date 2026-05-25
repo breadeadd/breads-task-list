@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from './supabase'
 import AuthForm from './components/AuthForm'
 import ThemeToggle from "./components/ThemeToggle"
 import Page from "./components/Page"
+import SessionHeader from "./components/SessionHeader"
+import CompletedList from "./components/CompletedList"
 
-// Runs once on first login if the user had data saved in localStorage.
-// Creates a default page in Supabase and migrates all their old data into it.
 async function migrateFromLocalStorage(userId, pageId) {
   const localTodos = (() => {
     try { return JSON.parse(localStorage.getItem('todos'))?.todos || [] } catch { return [] }
@@ -57,20 +57,23 @@ async function migrateFromLocalStorage(userId, pageId) {
 }
 
 const App = () => {
-  // Auth state — who is logged in
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-
-  // Pages state — the list of pages and which one is currently open
   const [pages, setPages] = useState([])
   const [activePage, setActivePage] = useState(null)
 
-  // Theme is a UI preference so it stays in localStorage, not Supabase
+  // completed lives here so SessionHeader and CompletedList can live here too
+  const [completed, setCompleted] = useState([])
+  const sessionCount = completed.length
+
+  // Page.jsx sets this ref so handleUndoCompleted can add the todo back into
+  // Page's local todos state without needing to re-fetch from Supabase
+  const addTodoBackRef = useRef(null)
+
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('theme') || 'dark' } catch { return 'dark' }
   })
 
-  // Apply the theme to the whole document whenever it changes
   useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', theme)
@@ -78,7 +81,6 @@ const App = () => {
     } catch (e) { }
   }, [theme])
 
-  // Listen for login/logout events and keep user state in sync
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -92,7 +94,6 @@ const App = () => {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Once we know who the user is, load their pages from Supabase
   useEffect(() => {
     if (!user) return
 
@@ -105,7 +106,6 @@ const App = () => {
 
       if (error) { console.error(error); return }
 
-      // First ever login and they had localStorage data — migrate it into a new page
       const hasLocalData = localStorage.getItem('todos') || localStorage.getItem('lists')
       if (hasLocalData && data.length === 0) {
         const { data: newPage, error: pageError } = await supabase
@@ -120,9 +120,6 @@ const App = () => {
         return
       }
 
-      // No pages yet — could be a brand new user, or an existing user whose data
-      // pre-dates the pages feature (their todos/lists have page_id = NULL).
-      // Either way: create a default page, then assign any orphaned rows to it.
       if (data.length === 0) {
         const { data: newPage, error: pageError } = await supabase
           .from('pages')
@@ -132,7 +129,6 @@ const App = () => {
 
         if (pageError) { console.error(pageError); return }
 
-        // Reassign any existing todos/lists that have page_id = NULL to the new page
         await supabase.from('todos').update({ page_id: newPage.id }).eq('user_id', user.id).is('page_id', null)
         await supabase.from('lists').update({ page_id: newPage.id }).eq('user_id', user.id).is('page_id', null)
 
@@ -141,15 +137,28 @@ const App = () => {
         return
       }
 
-      // Returning user — load their pages and open the first one
       setPages(data)
       setActivePage(data[0])
     }
 
+    // Load ALL completed todos for this user across every page — completed is
+    // a session-wide list, not scoped to the active page
+    async function loadCompleted() {
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_completed', true)
+        .order('created_at')
+
+      if (error) { console.error(error); return }
+      setCompleted(data)
+    }
+
     loadPages()
+    loadCompleted()
   }, [user])
 
-  // Create a new empty page and switch to it
   async function handleAddPage() {
     if (pages.length >= 8) return
 
@@ -164,13 +173,31 @@ const App = () => {
     setActivePage(data)
   }
 
-  // Delete a page — but never let the user delete the last one
   async function handleDeletePage(id) {
     if (pages.length === 1) return
     const updated = pages.filter(p => p.id !== id)
     setPages(updated)
     if (activePage?.id === id) setActivePage(updated[0])
     await supabase.from('pages').delete().eq('id', id)
+  }
+
+  async function handleResetSession() {
+    const completedIds = completed.map(t => t.id)
+    setCompleted([])
+    if (completedIds.length > 0) {
+      await supabase.from('todos').delete().in('id', completedIds)
+    }
+  }
+
+  async function handleUndoCompleted(index) {
+    const todo = completed[index]
+    setCompleted(prev => prev.filter((_, i) => i !== index))
+    // Only update Page's local state if the todo belongs to the currently open page.
+    // If it's from another page, Supabase is updated and it'll appear when navigating there.
+    if (todo.page_id === activePage?.id) {
+      addTodoBackRef.current?.(todo)
+    }
+    await supabase.from('todos').update({ is_completed: false }).eq('id', todo.id)
   }
 
   if (authLoading) return <div>Loading...</div>
@@ -181,7 +208,6 @@ const App = () => {
       <button className="signOutButton" onClick={() => supabase.auth.signOut()}>Sign out</button>
       <ThemeToggle theme={theme} setTheme={setTheme} />
 
-      {/* Tab bar — one button per page, plus a button to create a new one */}
       <div className="page-nav">
         {pages.map(page => (
           <button
@@ -195,12 +221,18 @@ const App = () => {
         <button className="page-tab" onClick={handleAddPage} disabled={pages.length >= 8}>+ New Page</button>
       </div>
 
-      {/*
-        key={activePage.id} is important — it tells React to fully destroy and
-        recreate the Page component whenever you switch pages, so state resets
-        and the new page's todos load fresh from Supabase.
-      */}
-      {activePage && <Page key={activePage.id} pageId={activePage.id} user={user} />}
+      {activePage && (
+        <Page
+          key={activePage.id}
+          pageId={activePage.id}
+          user={user}
+          setCompleted={setCompleted}
+          addTodoBackRef={addTodoBackRef}
+        />
+      )}
+
+      <SessionHeader count={sessionCount} handleResetSession={handleResetSession} />
+      <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted} />
     </div>
   )
 }
