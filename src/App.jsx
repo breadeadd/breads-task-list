@@ -6,6 +6,7 @@ import Page from "./components/Page"
 import PageTab from "./components/PageTab"
 import SessionHeader from "./components/SessionHeader"
 import CompletedList from "./components/CompletedList"
+import ConfirmationModal from "./components/ConfirmationModal"
 
 async function migrateFromLocalStorage(userId, pageId) {
   const localTodos = (() => {
@@ -63,6 +64,7 @@ const App = () => {
   const [pages, setPages] = useState([])
   const [activePage, setActivePage] = useState(null)
   const [pendingRenamePageId, setPendingRenamePageId] = useState(null)
+  const [pendingDeletePageId, setPendingDeletePageId] = useState(null)
 
   // completed lives here so SessionHeader and CompletedList can live here too
   const [completed, setCompleted] = useState([])
@@ -176,8 +178,15 @@ const App = () => {
     setPendingRenamePageId(data.id)
   }
 
-  async function handleDeletePage(id) {
+  function handleDeletePage(id) {
     if (pages.length === 1) return
+    setPendingDeletePageId(id)
+  }
+
+  async function confirmDeletePage() {
+    const id = pendingDeletePageId
+    setPendingDeletePageId(null)
+    if (!id) return
     const updated = pages.filter(p => p.id !== id)
     setPages(updated)
     if (activePage?.id === id) setActivePage(updated[0])
@@ -248,6 +257,13 @@ const App = () => {
 
       <SessionHeader count={sessionCount} handleResetSession={handleResetSession} />
       <CompletedList todos={completed} handleUndoCompleted={handleUndoCompleted} />
+      <ConfirmationModal
+        isOpen={pendingDeletePageId !== null}
+        title="Delete page?"
+        message="This will permanently delete the page and all its items."
+        onConfirm={confirmDeletePage}
+        onCancel={() => setPendingDeletePageId(null)}
+      />
     </div>
   )
 }

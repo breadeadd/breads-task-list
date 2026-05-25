@@ -5,6 +5,7 @@ import { supabase } from '../supabase'
 import TodoInput from "./TodoInput"
 import TodoList from "./TodoList"
 import ListsContainer from "./ListsContainer"
+import ConfirmationModal from "./ConfirmationModal"
 
 // Note: '../supabase' goes up one folder because Page.jsx is inside /components
 
@@ -37,6 +38,7 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
   const [activeListId, setActiveListId] = useState(null)
   const [pendingRenameListId, setPendingRenameListId] = useState(null)
   const [editingFromListId, setEditingFromListId] = useState(null)
+  const [pendingDeleteListId, setPendingDeleteListId] = useState(null)
   const [activeDragId, setActiveDragId] = useState(null)
   const [activeDragType, setActiveDragType] = useState(null)
 
@@ -391,13 +393,29 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
     setPendingRenameListId(newList.id)
   }
 
-  async function handleDeleteList(id) {
+  async function doDeleteList(id) {
     const updatedLists = lists.filter(list => list.id !== id)
     setLists(updatedLists)
     if (activeListId === id) {
       setActiveListId(updatedLists[0]?.id ?? null)
     }
     await supabase.from('lists').delete().eq('id', id)
+  }
+
+  function handleDeleteList(id) {
+    const list = lists.find(l => l.id === id)
+    if (list?.todos.length > 0) {
+      setPendingDeleteListId(id)
+    } else {
+      doDeleteList(id)
+    }
+  }
+
+  async function confirmDeleteList() {
+    const id = pendingDeleteListId
+    setPendingDeleteListId(null)
+    if (!id) return
+    await doDeleteList(id)
   }
 
   async function handleUpdateListTitle(id, newTitle) {
@@ -409,6 +427,13 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
 
   return (
     <div className="page-workspace">
+      <ConfirmationModal
+        isOpen={pendingDeleteListId !== null}
+        title="Delete list?"
+        message="This list has items that will be permanently deleted."
+        onConfirm={confirmDeleteList}
+        onCancel={() => setPendingDeleteListId(null)}
+      />
       <TodoInput
         inputRef={todoInputRef}
         todoValue={todoValue}

@@ -419,6 +419,72 @@ p {
   margin-left: 0;
 }
 
+/* Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--item-colour);
+  border-radius: 18px;
+  padding: 24px 28px;
+  max-width: 360px;
+  width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-title {
+  font-size: 1em;
+  font-weight: 500;
+}
+
+.modal-message {
+  opacity: 0.7;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-btn-cancel {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--session-header-button);
+  cursor: pointer;
+  font-size: 0.9em;
+  transition-duration: 200ms;
+}
+
+.modal-btn-cancel:hover {
+  opacity: 0.7;
+}
+
+.modal-btn-confirm {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #e25151;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition-duration: 200ms;
+}
+
+.modal-btn-confirm:hover {
+  opacity: 0.8;
+}
+
 @media (min-width: 640px) {
 
   header button,
