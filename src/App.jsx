@@ -92,7 +92,9 @@ const App = () => {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      // Avoid replacing the user object (and re-triggering effects that
+      // depend on it) when the session refreshes but the user hasn't changed
+      setUser(prev => (prev?.id === session?.user?.id ? prev : session?.user ?? null))
     })
 
     return () => subscription.unsubscribe()
@@ -142,7 +144,7 @@ const App = () => {
       }
 
       setPages(data)
-      setActivePage(data[0])
+      setActivePage(prev => (prev && data.some(p => p.id === prev.id)) ? data.find(p => p.id === prev.id) : data[0])
     }
 
     // Load ALL completed todos for this user across every page — completed is
