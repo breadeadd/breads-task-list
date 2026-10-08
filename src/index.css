@@ -76,6 +76,10 @@ header {
   display: flex;
   align-items: stretch;
   padding-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--background-colour);
 }
 
 header,
@@ -331,6 +335,55 @@ p {
 
 .authError {
   color: #e25151;
+}
+
+.authNotice {
+  color: var(--select-background);
+}
+
+.authPasswordField {
+  position: relative;
+  display: flex;
+}
+
+.authPasswordField input {
+  padding-right: 48px;
+}
+
+.authPasswordToggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 8px;
+  opacity: 0.7;
+}
+
+.authPasswordToggle:hover {
+  opacity: 1;
+}
+
+.authLinkButton {
+  background: transparent !important;
+  text-decoration: underline;
+  align-self: flex-start;
+  padding: 0 !important;
+  font-size: 0.9em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .signOutButton {

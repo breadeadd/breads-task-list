@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from './supabase'
 import AuthForm from './components/AuthForm'
+import ResetPasswordForm from './components/ResetPasswordForm'
 import ThemeToggle from "./components/ThemeToggle"
 import Page from "./components/Page"
 import PageTab from "./components/PageTab"
@@ -61,6 +62,7 @@ async function migrateFromLocalStorage(userId, pageId) {
 const App = () => {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   const [pages, setPages] = useState([])
   const [activePage, setActivePage] = useState(null)
   const [pendingRenamePageId, setPendingRenamePageId] = useState(null)
@@ -91,7 +93,8 @@ const App = () => {
       setAuthLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
       setUser(session?.user ?? null)
     })
 
@@ -219,6 +222,7 @@ const App = () => {
   }
 
   if (authLoading) return <div>Loading...</div>
+  if (isPasswordRecovery) return <ResetPasswordForm onDone={() => setIsPasswordRecovery(false)} />
   if (!user) return <AuthForm />
 
   return (

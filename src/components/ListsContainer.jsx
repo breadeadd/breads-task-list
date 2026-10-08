@@ -6,6 +6,7 @@ const ListsContainer = ({
   lists,
   activeDragId,
   activeDragType,
+  justAddedId,
   activeListId,
   onSelectList,
   pendingRenameListId,
@@ -35,7 +36,8 @@ const ListsContainer = ({
           id = {list.id}
           activeDragId={activeDragId}
           activeDragType={activeDragType}
-          initialTitle={list.title} 
+          justAddedId={justAddedId}
+          initialTitle={list.title}
           todos={list.todos}
           isActive={activeListId === list.id}
           onSelect={onSelectList}

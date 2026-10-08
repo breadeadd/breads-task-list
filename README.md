@@ -35,7 +35,20 @@ I built Bread because I noticed a missing element in traditional todo apps: **Co
 
 * **Supabase Backend:** The app uses Supabase for auth, a cloud Postgres database, and Row Level Security. Every write is an optimistic update — state changes immediately while the Supabase call runs in the background. Drag-and-drop reordering uses batch `upsert` to persist position changes for all affected items in a single request.
 
-* **User Accounts:** Sign up, sign in, and sign out with email and password. Row Level Security policies on every table ensure users can only ever read or write their own data. First-time users who had data in `localStorage` from the old version have it migrated to Supabase automatically on first login.
+* **User Accounts:** Sign up, sign in, and sign out with email and password, plus a full forgot-password/reset flow, email-confirmation handling, and accessible, loading-aware form states. Row Level Security policies on every table ensure users can only ever read or write their own data. First-time users who had data in `localStorage` from the old version have it migrated to Supabase automatically on first login.
+
+* **Session-Aware Undo:** Completing a task doesn't mean losing track of where it lived — undoing a completed task restores it to the list it originally belonged to (or the root inbox, if it was never in a list), not just to the top of the inbox.
+
+## 📚 Documentation
+
+Deeper technical write-ups live in [`docs/`](docs/):
+
+* [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Tech stack, component structure, and data flow.
+* [DATA_MODEL.md](docs/DATA_MODEL.md) — Object shapes, state slices, and immutable update patterns.
+* [DND_KIT.md](docs/DND_KIT.md) — How drag-and-drop is implemented with `dnd-kit`.
+* [PAGES.md](docs/PAGES.md) — How the multi-page workspace feature works end to end.
+* [AUTH.md](docs/AUTH.md) — The full auth system: sign-in/up, forgot password, email confirmation.
+* [SUPABASE.md](docs/SUPABASE.md) — From-scratch guide to wiring up the Supabase backend.
 
 ## ‼️ Deployment
 

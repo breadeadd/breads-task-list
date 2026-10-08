@@ -110,7 +110,8 @@ This split exists so that switching pages fully resets the workspace state — R
 | `App.jsx` | Auth, theme, pages list, active page, completed list, renders `<Page>` |
 | `PageTab` | Tab UI: select, rename (with auto-edit trigger), and delete a page |
 | `Page.jsx` | All todo/list state, DnD logic, Supabase calls for todos/lists |
-| `AuthForm` | Sign-up and sign-in form |
+| `AuthForm` | Sign-up, sign-in, forgot-password request, and email-confirmation handling |
+| `ResetPasswordForm` | Set a new password after following a password-reset email link |
 | `TodoInput` | Captures new task text and submits to parent handlers |
 | `TodoList` + `TodoCard` | Render and manage interactions for active tasks |
 | `ListsContainer` + `ListHeader` | Manage custom list sections and nested list tasks |
@@ -174,7 +175,7 @@ On each write:
 
 Completed todos are owned by `App.jsx`, not `Page.jsx`. On login, `App.jsx` fetches all completed todos for the user across every page. When `Page.jsx` completes a todo, it calls `setCompleted` (passed as a prop) to update the shared list. This keeps the session counter and completed list visible regardless of which page is active.
 
-When undoing a completed todo, `App.jsx` calls back into the active `Page.jsx` via `addTodoBackRef` to restore the item to local state instantly — but only if the todo belongs to the current page.
+When undoing a completed todo, `App.jsx` calls back into the active `Page.jsx` via `addTodoBackRef` to restore the item to local state instantly — but only if the todo belongs to the current page. The restore handler checks the todo's `list_id`: if it still matches a list in local state, the todo is appended back into that list's `todos`; otherwise (no list, or the list was since deleted) it falls back to the root inbox. Only which container it lands in is restored — its position within that container is not.
 
 ### Drag-and-drop Flow
 
@@ -243,6 +244,7 @@ Reasonable next architecture steps:
 Detailed deep-dives are available for specific areas of the codebase:
 
 - [SUPABASE.md](SUPABASE.md) — Full Supabase setup: schema, auth, RLS, CRUD patterns, and the pages backend.
+- [AUTH.md](AUTH.md) — The current, full-featured auth system: sign-in/up, forgot password, email confirmation, loading states, and accessibility.
 - [PAGES.md](PAGES.md) — How the multi-page feature works end to end: database schema, the PageTab component, data flow, and the key prop explained.
 - [DATA_MODEL.md](DATA_MODEL.md) — Object shapes, state slices, and immutable update patterns.
 - [DND_KIT.md](DND_KIT.md) — How dnd-kit is used: the two drag types, container ID system, collision detection, sensor configuration, and a step-by-step walkthrough of every drag event handler.

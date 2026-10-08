@@ -10,7 +10,7 @@ The three packages used in this app:
 |---|---|
 | `@dnd-kit/core` | Core drag context, sensors, and event system |
 | `@dnd-kit/sortable` | Sortable list primitives (`useSortable`, `SortableContext`, `arrayMove`) |
-| `@dnd-kit/utilities` | CSS transform helper (`CSS.Transform.toString`) |
+| `@dnd-kit/utilities` | CSS transform helpers (`CSS.Translate.toString`, `CSS.Transform.toString`) |
 
 ---
 
@@ -149,7 +149,7 @@ Only relevant for **cross-container todo moves**. When a todo is dragged from on
 
 1. Detect source container and destination container.
 2. Remove the item from the source array.
-3. Insert it into the destination array at the correct index.
+3. Insert it into the destination array at the correct index, stamping its `list_id` to match the destination (`null` for the root inbox, the list's `id` otherwise) so the in-memory todo object agrees with what `persistDragState` will write to Supabase.
 4. Apply both changes atomically via `applyContainerState`.
 
 This fires while dragging (not just on drop), which is what makes items visually "jump" into the target list as you hover — the state is actually updating in real time.
@@ -201,10 +201,13 @@ Uses `useSortable` which combines both draggable and droppable behavior:
 
 ```js
 const { setNodeRef, attributes, listeners, transform, transition } = useSortable({ id })
+const dragTransform = CSS.Translate.toString(transform)
 ```
 
 - `attributes` and `listeners` are spread onto the drag handle (`<i className="fa-grip-lines">`) — this is what makes only the handle initiate a drag, not the whole card.
 - `transform` and `transition` are applied as inline styles to animate the card's position during drag.
+
+**Why `CSS.Translate.toString`, not `CSS.Transform.toString`:** `useSortable` derives a `scaleX`/`scaleY` from `initial.height / current.height` whenever the dragged item's index changes mid-drag, and `CSS.Transform.toString` bakes that scale into the generated `transform`. Because this scale is computed from rounded pixel measurements, `scaleX` and `scaleY` can end up slightly unequal — producing a visible vertical "stretch" on the dragged card. `CSS.Translate.toString` only emits the `translate3d(...)` portion and drops the scale entirely, so the explicit `scale(1.02)` pop effect applied on top (`TodoCard.jsx`) stays uniform on both axes. `ListHeader.jsx` uses the same `CSS.Translate.toString` pattern for list-section dragging.
 
 ### `ListHeader` — the draggable list section
 

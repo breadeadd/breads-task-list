@@ -38,6 +38,8 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
   const [activeListId, setActiveListId] = useState(null)
   const [pendingRenameListId, setPendingRenameListId] = useState(null)
   const [editingFromListId, setEditingFromListId] = useState(null)
+  const [editingIndex, setEditingIndex] = useState(null)
+  const [justAddedId, setJustAddedId] = useState(null)
   const [pendingDeleteListId, setPendingDeleteListId] = useState(null)
   const [activeDragId, setActiveDragId] = useState(null)
   const [activeDragType, setActiveDragType] = useState(null)
@@ -49,11 +51,29 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
   const todoInputRef = useRef(null)
 
   // Register the addTodoBack function so App.jsx can call it from handleUndoCompleted.
-  // This lets undo update Page's local todos state instantly without a Supabase re-fetch.
+  // This lets undo update Page's local state instantly without a Supabase re-fetch,
+  // restoring the todo to whichever list it originally belonged to.
   useEffect(() => {
     if (addTodoBackRef) {
       addTodoBackRef.current = (todo) => {
-        setTodos(prev => [...prev, { ...todo, is_completed: false }])
+        const restored = { ...todo, is_completed: false }
+        let placedInList = false
+
+        if (restored.list_id) {
+          setLists(prev => {
+            if (!prev.some(list => list.id === restored.list_id)) return prev
+            placedInList = true
+            return prev.map(list =>
+              list.id === restored.list_id
+                ? { ...list, todos: [...list.todos, restored] }
+                : list
+            )
+          })
+        }
+
+        if (!placedInList) {
+          setTodos(prev => [...prev, restored])
+        }
       }
     }
     return () => {
@@ -112,6 +132,7 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
   // Without this, todos would save to Supabase but not be tied to any page.
   async function handleAddTodos(newTodo) {
     const targetListId = editingFromListId
+    const insertIndex = editingIndex
     const position = targetListId
       ? (lists.find(l => l.id === targetListId)?.todos.length ?? 0)
       : todos.length
@@ -131,20 +152,35 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
 
     if (error) { console.error(error); return }
 
+    setEditingFromListId(null)
+    setEditingIndex(null)
+
     if (targetListId !== null) {
       if (lists.some(list => list.id === targetListId)) {
-        setLists(prev => prev.map(list =>
-          list.id === targetListId
-            ? { ...list, todos: [...list.todos, data] }
-            : list
-        ))
-        setEditingFromListId(null)
+        const nextLists = lists.map(list => {
+          if (list.id !== targetListId) return list
+          const nextTodos = insertIndex !== null
+            ? [...list.todos.slice(0, insertIndex), data, ...list.todos.slice(insertIndex)]
+            : [...list.todos, data]
+          return { ...list, todos: nextTodos }
+        })
+        setLists(nextLists)
+        if (insertIndex !== null) persistDragState(todos, nextLists)
         return
       }
-      setEditingFromListId(null)
     }
 
-    setTodos(prev => [...prev, data])
+    const nextTodos = insertIndex !== null
+      ? [...todos.slice(0, insertIndex), data, ...todos.slice(insertIndex)]
+      : [...todos, data]
+    setTodos(nextTodos)
+
+    if (insertIndex !== null) {
+      persistDragState(nextTodos, lists)
+    } else {
+      setJustAddedId(data.id)
+      setTimeout(() => setJustAddedId(null), 1000)
+    }
   }
 
   async function handleDeleteTodo(index) {
@@ -157,6 +193,7 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
     const valueToBeEdited = todos[index]
     setTodoValue(valueToBeEdited.text)
     setEditingFromListId(null)
+    setEditingIndex(index)
     handleDeleteTodo(index)
     focusTodoInput()
   }
@@ -191,6 +228,7 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
 
     setTodoValue(valueToBeEdited.text)
     setEditingFromListId(listId)
+    setEditingIndex(index)
     handleDeleteListTodo(listId, index)
     focusTodoInput()
   }
@@ -279,9 +317,14 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
     const activeIndex = activeItems.findIndex((item) => item.id === active.id)
     if (activeIndex < 0) return
 
-    const activeItem = activeItems[activeIndex]
     const overIndex = overItems.findIndex((item) => item.id === over.id)
     const newIndex = overIndex >= 0 ? overIndex : overItems.length
+
+    // Stamp list_id to match the destination container so client-side state stays
+    // consistent with what persistDragState writes to Supabase — otherwise the moved
+    // item's in-memory list_id stays stale until the page is reloaded.
+    const overListId = overContainer === ROOT_TODO_CONTAINER ? null : overContainer.replace('list-', '')
+    const activeItem = { ...activeItems[activeIndex], list_id: overListId }
 
     const nextActiveItems = activeItems.filter((item) => item.id !== active.id)
     const nextOverItems = [
@@ -456,10 +499,12 @@ const Page = ({ pageId, user, setCompleted, addTodoBackRef }) => {
           handleEditTodo={handleEditTodo}
           handleDeleteTodo={handleDeleteTodo}
           todos={todos}
+          justAddedId={justAddedId}
         />
         <ListsContainer
           activeDragId={activeDragId}
           activeDragType={activeDragType}
+          justAddedId={justAddedId}
           lists={lists}
           activeListId={activeListId}
           onSelectList={setActiveListId}
