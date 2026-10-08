@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import TodoList from './TodoList'
 
-const ListHeader = ({ id, activeDragId, activeDragType, initialTitle, todos = [], shouldAutoEdit, onAutoEditHandled, onDelete, onUpdate, onDeleteTodo, onEditTodo, onCompleteTodo }) => {
+const ListHeader = ({ id, activeDragId, activeDragType, justAddedId, initialTitle, todos = [], shouldAutoEdit, onAutoEditHandled, onDelete, onUpdate, onDeleteTodo, onEditTodo, onCompleteTodo }) => {
     const sortableId = `list-section-${id}`
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState(initialTitle);
@@ -85,6 +85,7 @@ const ListHeader = ({ id, activeDragId, activeDragType, initialTitle, todos = []
             <TodoList
                 containerId={`list-${id}`}
                 activeDragId={activeDragId}
+                justAddedId={justAddedId}
                 isInteractionDisabled={activeDragType === 'list-section'}
                 className="listDropzone"
                 emptyMessage="Drop tasks here"

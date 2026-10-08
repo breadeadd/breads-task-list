@@ -239,6 +239,8 @@ const AuthForm = () => {
 export default AuthForm
 ```
 
+> **Note:** this is a minimal starting point for the tutorial. The shipped `AuthForm.jsx` has grown well beyond this — forgot-password/reset flows, email-confirmation handling, loading states, and accessibility labels. See [AUTH.md](AUTH.md) for the current reference.
+
 ### Gate the app behind auth
 
 In `App.jsx`, wrap the return value to show `AuthForm` until the user is logged in:
@@ -449,6 +451,8 @@ async function handleUndoCompleted(index) {
   setCompleted(completed.filter((_, i) => i !== index))
 }
 ```
+
+> **Note:** this tutorial version always restores to the root inbox. The shipped app restores a todo to whichever list it originally belonged to (falling back to the inbox if it had none, or if that list was deleted in the meantime) — see the "Completed Todos: Cross-Page" sections in [ARCHITECTURE.md](ARCHITECTURE.md) and [PAGES.md](PAGES.md).
 
 **Reset session (clear all completed):**
 

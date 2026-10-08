@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-const TodoCard = ({ id, children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo, isDragActive = false, isInteractionDisabled = false }) => {
+const TodoCard = ({ id, children, handleDeleteTodo, index, handleEditTodo, handleCompleteTodo, isDragActive = false, isInteractionDisabled = false, justAddedId = null }) => {
     const {
         setNodeRef,
         attributes,
@@ -11,7 +11,13 @@ const TodoCard = ({ id, children, handleDeleteTodo, index, handleEditTodo, handl
         transition,
     } = useSortable({ id, disabled: isInteractionDisabled })
 
-    const dragTransform = CSS.Transform.toString(transform)
+    const localRef = useRef(null)
+    const setRefs = (node) => {
+        setNodeRef(node)
+        localRef.current = node
+    }
+
+    const dragTransform = CSS.Translate.toString(transform)
 
     const style = {
         transform: isDragActive && dragTransform ? `${dragTransform} scale(1.02)` : dragTransform,
@@ -19,9 +25,15 @@ const TodoCard = ({ id, children, handleDeleteTodo, index, handleEditTodo, handl
         zIndex: isDragActive ? 30 : undefined,
     }
 
+    useEffect(() => {
+        if (id === justAddedId) {
+            localRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+    }, [id, justAddedId])
+
 
   return (
-    <li ref={setNodeRef} style={style} className={`todoItem${isDragActive ? ' isDragging' : ''}`}>
+    <li ref={setRefs} style={style} className={`todoItem${isDragActive ? ' isDragging' : ''}`}>
         <i
             className={`fa-solid fa-grip-lines${isDragActive ? ' isDragging' : ''}`}
             {...attributes}

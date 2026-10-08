@@ -148,6 +148,8 @@ setLists(updatedLists)
 | `todoValue` | `string` | Live text in the task input field |
 | `activeListId` | `uuid \| null` | Which list section is currently selected |
 | `editingFromListId` | `uuid \| null` | Tracks if the input is targeting a specific list |
+| `editingIndex` | `number \| null` | Original index of the todo being edited, so saving reinserts it in place instead of appending at the end |
+| `justAddedId` | `uuid \| null` | ID of the most recently added todo; briefly set so its card can scroll into view, then cleared |
 | `pendingRenameListId` | `uuid \| null` | Triggers auto-focus rename on new lists |
 | `activeDragId` | `uuid \| string \| null` | ID of the item currently being dragged |
 | `activeDragType` | `'todo-item' \| 'list-section' \| null` | Category of the active drag |

@@ -268,6 +268,8 @@ Completed todos are owned by `App.jsx`, not `Page.jsx`. This means the completed
 
 When a todo is completed inside `Page.jsx`, it calls `setCompleted` (passed down as a prop from `App.jsx`) to add it to the shared list. When undoing a completed todo, `App.jsx` calls back into the active `Page.jsx` via `addTodoBackRef` to restore the todo to local state without a re-fetch — but only if the todo belongs to the currently active page.
 
+The restore handler is list-aware: it checks the todo's `list_id` and, if a matching list is still present in local state, appends the todo back into that list's `todos` array instead of the root inbox. If the todo had no `list_id`, or its list was deleted while it was completed, it falls back to the root inbox. Exact position within the container isn't restored, only which container it lands in.
+
 ---
 
 ## localStorage Migration
