@@ -184,6 +184,7 @@ Everything else (todos, lists, pages, completed) lives in Supabase.
 | `lists` | Yes | Written on every add, delete, rename, or reorder |
 | `completed` | Yes | Written on complete; deleted on undo or session reset |
 | `pages` | Yes | Written on add, rename, or delete |
+| `notes` | Yes | One row per user; autosaved while typing and on close (`NotesPad.jsx`) |
 | `theme` | No (localStorage only) | Not synced across devices |
 | `todoValue` | No | In-memory only, just the current input string |
 | `activeListId` | No | Rehydrated from first list on page load |

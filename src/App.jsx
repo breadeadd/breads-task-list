@@ -8,6 +8,7 @@ import PageTab from "./components/PageTab"
 import SessionHeader from "./components/SessionHeader"
 import CompletedList from "./components/CompletedList"
 import ConfirmationModal from "./components/ConfirmationModal"
+import NotesPad from "./components/NotesPad"
 
 async function migrateFromLocalStorage(userId, pageId) {
   const localTodos = (() => {
@@ -270,6 +271,7 @@ const App = () => {
         onConfirm={confirmDeletePage}
         onCancel={() => setPendingDeletePageId(null)}
       />
+      <NotesPad user={user} />
     </div>
   )
 }
