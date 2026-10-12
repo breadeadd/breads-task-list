@@ -21,9 +21,9 @@ const ListsContainer = ({
 
   return (
     <div className = "listContainer">
-        <div style={{ marginLeft: 'auto' }}>
-          Create Lists <i onClick={handleAddList} className="fa-solid fa-plus"></i>
-        </div>
+        <button className="create-list-btn" onClick={handleAddList}>
+          Create Lists <i className="fa-solid fa-plus"></i>
+        </button>
 
         <SortableContext
           items={lists.map((list) => `list-section-${list.id}`)}
