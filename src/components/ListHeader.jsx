@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import TodoList from './TodoList'
@@ -30,16 +30,33 @@ const ListHeader = ({ id, activeDragId, activeDragType, justAddedId, initialTitl
     }
 
 
+    const localRef = useRef(null)
+    const titleInputRef = useRef(null)
+    const setRefs = (node) => {
+        setNodeRef(node)
+        localRef.current = node
+    }
+
+    // New lists jump into view with the rename field already open
     useEffect(() => {
         if (!shouldAutoEdit) return
 
         const animationFrameId = requestAnimationFrame(() => {
+            localRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
             setIsEditing(true)
         })
         onAutoEditHandled?.()
 
         return () => cancelAnimationFrame(animationFrameId)
     }, [shouldAutoEdit, onAutoEditHandled])
+
+    // Focus without scrolling so the browser's instant focus-scroll
+    // doesn't cut off the smooth scroll above
+    useEffect(() => {
+        if (!isEditing) return
+        titleInputRef.current?.focus({ preventScroll: true })
+        titleInputRef.current?.select()
+    }, [isEditing])
 
     const handleSave = () => {
         const cleanedTitle = title.trim();
@@ -50,7 +67,7 @@ const ListHeader = ({ id, activeDragId, activeDragType, justAddedId, initialTitl
     }
 
   return (
-        <div ref={setNodeRef} style={style} className = {`list${isDragActive ? ' isDragging' : ''}`}>
+        <div ref={setRefs} style={style} className = {`list${isDragActive ? ' isDragging' : ''}`}>
       <div className="listHeader">
         <i 
         ref={setActivatorNodeRef}
@@ -62,10 +79,9 @@ const ListHeader = ({ id, activeDragId, activeDragType, justAddedId, initialTitl
           {isEditing ? (
               <>
                   <input
+                      ref={titleInputRef}
                       type = "text"
                       value = {title}
-                      autoFocus
-                      onFocus={(e) => e.target.select()}
                       onChange={(e) => setTitle(e.target.value)}
                       onKeyDown={(e) => {if (e.key === "Enter") handleSave()}}
                   />

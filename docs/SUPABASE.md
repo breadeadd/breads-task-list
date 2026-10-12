@@ -784,6 +784,35 @@ await migrateFromLocalStorage(user.id, newPage.id)
 
 ---
 
+## 9. Notes Pad Backend
+
+The notes pad (pencil button, bottom-right) stores one free-form text blob per user, so it syncs across devices. Run this once in the SQL Editor:
+
+```sql
+CREATE TABLE notes (
+  user_id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  content text NOT NULL DEFAULT '',
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own notes"
+  ON notes FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+`user_id` is the primary key, so each user has at most one row and writes are a single upsert:
+
+```js
+supabase.from('notes').upsert({ user_id: user.id, content, updated_at: new Date().toISOString() })
+```
+
+`NotesPad.jsx` re-fetches on every open, autosaves ~800ms after typing stops, and saves again on close (X, overlay click, Escape) or when the tab is hidden.
+
+---
+
 ## Summary of Files Changed
 
 | File | Change |
