@@ -41,11 +41,13 @@ const ListHeader = ({ id, activeDragId, activeDragType, justAddedId, initialTitl
     useEffect(() => {
         if (!shouldAutoEdit) return
 
+        // onAutoEditHandled must run inside the frame: calling it straight away
+        // re-renders with shouldAutoEdit=false, and the cleanup cancels this frame
         const animationFrameId = requestAnimationFrame(() => {
             localRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
             setIsEditing(true)
+            onAutoEditHandled?.()
         })
-        onAutoEditHandled?.()
 
         return () => cancelAnimationFrame(animationFrameId)
     }, [shouldAutoEdit, onAutoEditHandled])
